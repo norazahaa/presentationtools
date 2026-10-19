@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Interactive Quiz</title>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+    options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'] }
+  };
+</script>
+<style>
+
+:root{ --bg:#eff1f5; --panel:#ffffff; --text:#4c4f69; --muted:#6c6f85; --primary:#1e66f5; --primary2:#40a02b; --border:color-mix(in srgb, var(--text) 18%, transparent); --option-bg:color-mix(in srgb, var(--panel) 88%, var(--primary) 12%); --option-hover:color-mix(in srgb, var(--panel) 80%, var(--primary) 20%); --option-active:color-mix(in srgb, var(--panel) 72%, var(--primary) 28%); --radius:16px; --app-font:'Noto Sans', 'Segoe UI', Tahoma, Arial, sans-serif; }
+body{ margin:0; font-family:var(--app-font); background:var(--bg); color:var(--text); min-height:100vh; display:flex; justify-content:center; padding:20px; box-sizing:border-box; }
+button,input,table,th,td,label,h1,h2,h3,p,div{ font-family:var(--app-font); }
+.card{ background:var(--panel); width:100%; max-width:600px; border-radius:var(--radius); padding:24px; box-shadow:0 10px 30px rgba(0,0,0,0.3); border:1px solid var(--border); }
+h1{ margin:0 0 10px; font-size:22px; text-align:center; } .desc{ color:var(--muted); font-size:13px; margin-bottom:20px; text-align:center; line-height:1.5; }
+.quizLogoWrap{ width:162px; height:162px; border-radius:50%; overflow:hidden; margin:4px auto 18px; border:1px solid var(--border); background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; }
+.quizLogo{ width:100%; height:100%; object-fit:cover; display:block; }
+.loginIntro{ text-align:center; }
+.loginForm{ width:100%; max-width:420px; margin:0 auto; }
+.loginForm label{ text-align:left; }
+.loginForm input{ text-align:left; }
+.reviewBox{ margin-top:20px; border-top:1px solid var(--border); padding-top:18px; }
+.reviewItem{ border:1px solid var(--border); border-radius:12px; padding:14px; margin-top:12px; background:color-mix(in srgb, var(--panel) 90%, var(--primary) 10%); }
+.badge{ display:inline-block; padding:4px 8px; border-radius:999px; font-size:11px; font-weight:800; margin-bottom:8px; }
+.badge.ok{ background:rgba(34,197,94,.16); color:var(--primary2); }
+.badge.no{ background:rgba(239,68,68,.16); color:#ef4444; }
+.reviewMeta{ font-size:13px; line-height:1.55; color:var(--text); }
+.reviewMeta b{ color:var(--muted); }
+label{ font-size:10px; text-transform:uppercase; font-weight:bold; color:var(--muted); margin-bottom:4px; display:block; }
+.loginForm label{ font-size:12px; }
+.loginForm input{ padding:10px 12px; }
+input{ width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); background:color-mix(in srgb, var(--panel) 92%, var(--text) 8%); color:var(--text); margin-bottom:15px; box-sizing:border-box; outline:none; }
+.loginForm input{ padding:10px 12px; }
+.timerBox{ width:max-content; min-width:118px; margin:0 auto 14px; padding:8px 16px; border-radius:999px; background:linear-gradient(135deg, color-mix(in srgb, var(--primary) 18%, var(--panel) 82%), color-mix(in srgb, var(--primary2) 16%, var(--panel) 84%)); border:1px solid color-mix(in srgb, var(--primary) 42%, var(--border)); color:var(--primary2); font-size:17px; font-weight:800; letter-spacing:.04em; text-align:center; box-shadow:0 8px 22px rgba(0,0,0,.16); }
+.timeEndNotice{ margin:0 0 16px; padding:12px 14px; border-radius:14px; background:color-mix(in srgb, #ef4444 12%, var(--panel) 88%); border:1px solid color-mix(in srgb, #ef4444 46%, var(--border)); color:var(--text); text-align:center; font-size:15px; font-weight:800; }
+.btn{ background:var(--primary); color:#fff; border:none; padding:12px 20px; border-radius:10px; cursor:pointer; font-weight:800; width:100%; transition:0.2s; box-shadow:0 8px 18px rgba(0,0,0,.22); }
+.btn:hover{ filter:brightness(1.1); }
+.btn-back{ background:linear-gradient(135deg, var(--primary), var(--primary2)); color:#fff; border:1px solid rgba(255,255,255,.35); box-shadow:0 0 0 3px rgba(255,255,255,.10), 0 8px 22px rgba(0,0,0,.25); }
+.btn-back:hover{ filter:brightness(1.18); box-shadow:0 0 0 4px rgba(255,255,255,.14), 0 10px 26px rgba(0,0,0,.30); }
+.opt{ display:block; padding:14px; border:1px solid color-mix(in srgb, var(--primary) 35%, var(--border)); border-radius:10px; margin-bottom:10px; cursor:pointer; transition:0.2s; background:var(--option-bg); color:var(--text); font-weight:600; }
+.opt:hover{ background:var(--option-hover); border-color:color-mix(in srgb, var(--primary) 55%, var(--border)); } .opt.active{ border-color:var(--primary); background:var(--option-active); box-shadow:0 0 0 3px color-mix(in srgb, var(--primary) 24%, transparent); }
+.bar{ height:6px; background:rgba(255,255,255,0.05); border-radius:3px; margin-bottom:20px; overflow:hidden; }
+.fill{ height:100%; background:var(--primary); transition:width 0.3s; }
+table{ width:100%; border-collapse:collapse; margin-top:15px; font-size:12px; }
+th, td{ text-align:left; padding:8px; border-bottom:1px solid var(--border); }
+@media (min-width: 901px){ body{ overflow:hidden; } .card{ max-height:calc(100vh - 40px); overflow:auto; } }
+
+</style>
+</head>
+<body>
+<div class="card" id="app"></div>
+<script>
+const DATA = {"title":"Interactive Quiz","desc":"Answer all questions and review your feedback at the end.","lang":"en","randQ":false,"randA":false,"saveData":false,"classLbl":"Student ID","sheetUrl":"","logoUrl":"","timerMinutes":0,"hasExplanation":true,"questions":[{"q":"An instructor wants to present a striking data point about student employment rates during a live presentation. Applying effective slide design principles, how should this statistical finding be displayed?","choices":["Include the full sentence along with three bulleted paragraphs detailing the methodology.","Embed a 3D bar chart with decorative clipart illustrations surrounding the percentage.","Copy and paste the summary paragraph directly from the published study report.","Display the single percentage figure in a prominent, large font and deliver the explanatory context orally."],"answerIndex":3,"explain":"Highlighting a single key statistic visually while providing context verbally creates maximum cognitive impact without overwhelming the audience.","rationales":["Including extensive written explanations on the slide forces the audience to read dense text rather than focus on the speaker.","Decorative 3D effects and clipart add unnecessary visual clutter that distracts from the core statistical message.","Pasting dense blocks of text onto slides leads to cognitive overload and reduces visual effectiveness.","Highlighting a single key statistic visually while providing context verbally creates maximum cognitive impact without overwhelming the audience."]},{"q":"When presenting in a bright classroom where overhead lights remain fully turned on, which color scheme provides optimal legibility?","choices":["A black slide background paired with vibrant neon green text.","A dark blue slide background paired with light yellow text.","A pure white slide background paired with dark-colored text.","A light grey background paired with bright red text for emphasis."],"answerIndex":2,"explain":"In fully lit environments, high contrast between dark text and a light background ensures maximum readability for viewers.","rationales":["Fluorescent text on black creates poor readability and eye strain in bright ambient lighting conditions.","Dark backgrounds tend to wash out and lose clarity when projected under strong ambient room lighting.","In fully lit environments, high contrast between dark text and a light background ensures maximum readability for viewers.","Low-contrast gray backgrounds with red text reduce legibility and can be difficult for viewers to read clearly."]},{"q":"What is the primary operational downside of applying intricate motion animations to every text line and slide transition throughout a lecture?","choices":["They restrict slide transitions strictly to the introductory title slide.","They render slide text completely unreadable on digital projectors.","They force the presentation software to disable speaker notes and presenter view.","They slow down presentation pacing and create tedious distractions, particularly during dynamic interactions like Q&A."],"answerIndex":3,"explain":"Excessive slide animations and transitions interrupt presentation flow and create delays when navigating back and forth during discussion.","rationales":["Transitions can technically be applied across any slides, but overusing them disrupts the overall delivery.","Motion effects do not alter text legibility directly, though they create unnecessary visual distractions.","Animation settings do not disable core presenter features like speaker notes or presenter views.","Excessive slide animations and transitions interrupt presentation flow and create delays when navigating back and forth during discussion."]},{"q":"How should a non-essential background photograph be treated on a slide so that it does not compete with main instructional content?","choices":["Scale the photo to full screen and increase its contrast and sharpness.","Reduce the image's opacity and apply a Gaussian blur effect.","Overlay multiple full-sentence text boxes directly across the sharpest parts of the image.","Replace the photograph with high-contrast decorative clip art."],"answerIndex":1,"explain":"Softening background images with lower opacity and blur ensures they remain visually subordinate to key text and graphics.","rationales":["Sharpening and enlarging non-essential photos causes them to compete directly with text content for audience attention.","Softening background images with lower opacity and blur ensures they remain visually subordinate to key text and graphics.","Placing text over high-contrast, unblurred background photos severely degrades text legibility.","Swapping background photos for clip art fails to solve the issue of visual distraction on the slide."]},{"q":"A presenter delivers a slideshow composed entirely of text bullet points accompanied by spoken narrative. Which learning preference is most neglected by this format, and how can it be addressed?","choices":["Kinesthetic learners; change the typography to a sans-serif font family.","Auditory learners; expand the number of detailed bullet points on each slide.","Read and write learners; eliminate all visible text from the slides.","Visual learners; incorporate relevant diagrams, video clips, and live visual demonstrations."],"answerIndex":3,"explain":"Text-heavy slides paired with speech lack graphical representation, leaving visual learners without concrete visual anchors.","rationales":["Font style adjustments alone do not provide the necessary graphic or visual content needed by visual learners.","Adding more written text does not assist visual learners who benefit primarily from images and visual demonstrations.","Removing text entirely without adding visual aids fails to provide structured content for any learning preference.","Text-heavy slides paired with speech lack graphical representation, leaving visual learners without concrete visual anchors."]},{"q":"While Prezi's non-linear, zooming interface effectively maps conceptual relationships, what widely reported challenge do speakers encounter with it?","choices":["The platform completely lacks support for video and image embedding.","It strictly functions in an offline environment without cloud support.","Frequent zooming and panning motion can cause audience disorientation and cognitive fatigue.","It prevents real-time collaboration among multiple authors."],"answerIndex":2,"explain":"Rapid transitions and non-linear movement across a dynamic spatial canvas can disorient viewers and cause visual fatigue.","rationales":["Modern non-linear presentation platforms fully support embedded video and image assets.","Cloud-based platforms offer online accessibility and dynamic web sharing rather than offline-only operation.","Rapid transitions and non-linear movement across a dynamic spatial canvas can disorient viewers and cause visual fatigue.","Cloud presentation software commonly includes multi-user sharing and real-time collaboration tools."]},{"q":"Which statement accurately balances a key design advantage of Canva against one of its main practical limitations?","choices":["It operates seamlessly without an internet connection, but lacks pre-built layout options.","It offers intuitive drag-and-drop templates, but heavy reliance on them can lead to generic designs and paywalled assets.","It provides unlimited access to premium design elements, but restricts export capabilities.","It prevents multi-user editing, but offers an excessive number of real-time collaboration tools."],"answerIndex":1,"explain":"Ready-made templates accelerate layout creation, but frequent template use can yield unoriginal visuals and require paid upgrades for premium elements.","rationales":["Web-based graphic tools rely on active internet connections and are widely recognized for their pre-designed layout offerings.","Ready-made templates accelerate layout creation, but frequent template use can yield unoriginal visuals and require paid upgrades for premium elements.","Cloud design applications typically allow asset export while restricting premium stock elements behind subscription paywalls.","Web 2.0 tools are structured around multi-user collaboration rather than single-user restriction."]},{"q":"What shared infrastructure requirement represents a significant risk when presenting live using cloud-hosted Web 2.0 platforms like Canva, Prezi, or Emaze?","choices":["They can only be executed on a single specific computer operating system.","They prohibit the inclusion of standard raster graphics and audio media.","Slide decks created on these platforms cannot be shared digitally with students.","Continuous, reliable internet connectivity is necessary, making live delivery vulnerable to network drops."],"answerIndex":3,"explain":"Web-hosted presentation applications rely continuously on network connectivity, leaving live lectures vulnerable to internet disruptions.","rationales":["Browser-based presentation tools operate across multiple operating systems equipped with standard web browsers.","Web 2.0 presentation tools widely support standard multimedia formats, including raster graphics and audio.","Cloud applications offer simple link-based sharing for distributing materials to students.","Web-hosted presentation applications rely continuously on network connectivity, leaving live lectures vulnerable to internet disruptions."]},{"q":"An instructor assigns a group presentation requiring students to co-author a deck remotely outside of class. Why is a cloud-based Web 2.0 tool appropriate, and what precaution should be taken?","choices":["Cloud features enable concurrent multi-user editing, provided users verify free-tier feature restrictions in advance.","Desktop-only presentation software guarantees seamless co-editing without file version conflicts.","Web 2.0 platforms guarantee completely unrestricted access to all premium features on free accounts.","Non-linear zoom effects guarantee improved student learning outcomes regardless of content quality."],"answerIndex":0,"explain":"Real-time cloud collaboration allows group members to co-edit decks remotely, though free subscription tiers may limit asset access.","rationales":["Real-time cloud collaboration allows group members to co-edit decks remotely, though free subscription tiers may limit asset access.","Local desktop software lacks native real-time web co-editing, often causing file version conflicts during group work.","Web 2.0 software platforms almost universally enforce feature and asset restrictions on free user tiers.","Dynamic zoom visuals do not inherently guarantee better educational outcomes if the underlying content is lacking."]},{"q":"When incorporating stock images from a Web 2.0 software library into a presentation that will be published online, what is the best copyright practice?","choices":["Reduce the resolution of copyrighted images to bypass legal distribution requirements.","Assume all graphics stored inside a platform's media library are free for unrestricted public use.","Remove every image from the presentation prior to publishing.","Review the licensing terms corresponding to the specific image and account tier, citing or replacing assets as required."],"answerIndex":3,"explain":"Stock asset licenses vary based on account tiers, requiring authors to confirm permissions and credit sources before public distribution.","rationales":["Altering image resolution does not alter or bypass legal copyright protections and licensing requirements.","Platform media libraries often contain assets subject to specific licensing rules and tier-based usage restrictions.","Removing all images is unnecessary when proper licensing compliance and attribution steps are followed.","Stock asset licenses vary based on account tiers, requiring authors to confirm permissions and credit sources before public distribution."]}]}; 
+const UI = {"name":"Full Name","class":"Student ID","start":"Start Quiz","next":"Next","back":"Back","finish":"Finish","retake":"Retake","rank":"Top 10 Ranking","saving":"Saving data...","result":"Result","q":"Q","tableName":"Name","tableClass":"Student ID","percent":"%","alertInfo":"Please fill in your details.","alertChoose":"Please choose an answer.","review":"Answer Review","questionLabel":"Question","answerLabel":"Answer","explanationLabel":"Explanation","correct":"Correct","incorrect":"Incorrect","feedbackCorrect":"Correct answer, no comment.","feedbackWrong":"Your answer does not match the key concept.","noRefNote":"No explanation was found in the uploaded question file.","timeEnd":"Time End"};
+let state = { mode:'login', idx:0, ans:[], name:'', class:'', qs:[], loading:false, ranking:[], endTime:0, remaining:0, timeEnded:false };
+let timerInterval = null;
+function esc(v){ return String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function formatTime(ms){ const total = Math.max(0, Math.ceil(ms/1000)); const m = Math.floor(total/60); const s = total % 60; return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0'); }
+function startTimer(){ if(timerInterval) clearInterval(timerInterval); if(!DATA.timerMinutes) return; state.endTime = Date.now() + DATA.timerMinutes * 60000; timerInterval = setInterval(() => { state.remaining = state.endTime - Date.now(); if(state.remaining <= 0){ clearInterval(timerInterval); timerInterval = null; state.timeEnded = true; finish(); } else if(state.mode === 'quiz') { const el = document.getElementById('timerBox'); if(el) el.textContent = formatTime(state.remaining); } }, 1000); }
+function timerHtml(){ return DATA.timerMinutes && state.mode === 'quiz' ? '<div class="timerBox" id="timerBox">' + formatTime(state.endTime - Date.now()) + '</div>' : ''; }
+function buildReview(){
+  return '<div class="reviewBox"><h3 style="text-align:center; margin:0 0 12px;">' + UI.review + '</h3>' +
+    state.qs.map((q,i) => {
+      const picked = state.ans[i];
+      const ok = picked === q.answerIndex;
+      const userAns = picked === null || picked === undefined ? '-' : q.choices[picked];
+      const selectedRationale = q.rationales && picked !== null && picked !== undefined ? q.rationales[picked] : "";
+      const correctRationale = q.rationales ? q.rationales[q.answerIndex] : "";
+      const fb = selectedRationale || correctRationale || q.explain || (ok ? UI.feedbackCorrect : UI.feedbackWrong + " " + UI.noRefNote);
+      return '<div class="reviewItem">' +
+        '<span class="badge ' + (ok ? 'ok' : 'no') + '">' + (ok ? UI.correct : UI.incorrect) + '</span>' +
+        '<div class="reviewMeta"><b>' + UI.questionLabel + ':</b> ' + esc(q.q) + '</div>' +
+        '<div class="reviewMeta"><b>' + UI.answerLabel + ':</b> ' + esc(userAns) + '</div>' +
+        '<div class="reviewMeta"><b>' + UI.explanationLabel + ':</b> ' + esc(fb) + '</div>' +
+      '</div>';
+    }).join('') + '</div>';
+}
+
+function render(){
+  const app = document.getElementById('app');
+  if(state.mode==='login'){
+    const logoHtml = DATA.logoUrl ? '<div class="quizLogoWrap"><img class="quizLogo" src="' + esc(DATA.logoUrl) + '" alt="Logo"></div>' : '';
+    app.innerHTML = '<div class="loginIntro">' + logoHtml + '<h1>' + DATA.title + '</h1><p class="desc">' + DATA.desc + '</p></div>' +
+      '<div class="loginForm"><label>' + UI.name + '</label><input type="text" id="u_name" value="' + esc(state.name) + '">' +
+      '<label>' + UI.class + '</label><input type="text" id="u_class" value="' + esc(state.class) + '">' +
+      '<button class="btn" onclick="start()">' + UI.start + '</button></div>';
+  } else if(state.mode==='quiz'){
+    const q = state.qs[state.idx];
+    const backBtn = state.idx > 0 ? '<button class="btn btn-back" style="margin-top:10px;" onclick="back()">' + UI.back + '</button>' : '';
+    const finishBtn = state.idx === state.qs.length - 1 ? '<button class="btn" style="margin-top:10px;" onclick="next()">' + UI.finish + '</button>' : '';
+    app.innerHTML = timerHtml() + '<div class="bar"><div class="fill" style="width:' + ((state.idx)/state.qs.length)*100 + '%"></div></div>' +
+      '<div style="font-size:11px; color:var(--muted); margin-bottom:10px;">' + UI.q + ' ' + (state.idx+1) + ' / ' + state.qs.length + '</div>' +
+      '<h2 style="font-size:17px; margin-bottom:20px;">' + q.q + '</h2>' +
+      q.choices.map((c,i) => '<div class="opt ' + (state.ans[state.idx]===i?'active':'') + '" onclick="setAns(' + i + ')">' + c + '</div>').join('') +
+      finishBtn + backBtn;
+  } else if(state.mode==='result'){
+    let score = state.ans.reduce((acc, a, i) => acc + (a === state.qs[i].answerIndex ? 1 : 0), 0);
+    let pct = Math.round((score/state.qs.length)*100);
+    let html = '<h1>' + UI.result + '</h1>' + (state.timeEnded ? '<div class="timeEndNotice">' + UI.timeEnd + '</div>' : '') + '<div style="font-size:48px; font-weight:900; color:var(--primary2);">' + pct + '% (' + score + '/' + state.qs.length + ')</div>';
+    html += buildReview();
+    if(DATA.saveData){
+      html += '<div style="margin-top:20px; border-top:1px solid var(--border); padding-top:20px;"><h3 style="text-align:center;">' + UI.rank + '</h3>';
+      if(state.loading) html += '<p>' + UI.saving + '</p>';
+      else if(state.ranking.length > 0) {
+        html += '<table><tr><th>#</th><th>' + UI.tableName + '</th><th>' + UI.tableClass + '</th><th>' + UI.percent + '</th></tr>' + 
+          state.ranking.map((r,i) => '<tr><td>' + (i+1) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.class) + '</td><td>' + esc(r.percent) + '</td></tr>').join('') + '</table>';
+      }
+      html += '</div>';
+    }
+    html += '<button class="btn" style="margin-top:20px;" onclick="location.reload()">' + UI.retake + '</button>';
+    app.innerHTML = html;
+  }
+  if (window.MathJax && window.MathJax.typeset) window.MathJax.typeset();
+}
+function start(){
+  state.name = document.getElementById('u_name').value.trim(); 
+  state.class = document.getElementById('u_class').value.trim();
+  if(!state.name || !state.class) return alert(UI.alertInfo);
+  state.qs = JSON.parse(JSON.stringify(DATA.questions));
+  if(DATA.randQ) state.qs.sort(() => Math.random()-0.5);
+  if(DATA.randA) state.qs.forEach(q => {
+    const originalCorrect = q.choices[q.answerIndex];
+    const rationales = Array.isArray(q.rationales) ? q.rationales : [];
+    const pairs = q.choices.map((choice, idx) => ({ choice, rationale: rationales[idx] || "" }));
+    pairs.sort(() => Math.random()-0.5);
+    q.choices = pairs.map(p => p.choice);
+    q.rationales = pairs.map(p => p.rationale);
+    q.answerIndex = q.choices.indexOf(originalCorrect);
+  });
+  state.ans = new Array(state.qs.length).fill(null);
+  state.timeEnded = false;
+  state.mode = 'quiz'; startTimer(); render();
+}
+function setAns(i){ state.ans[state.idx] = i; if(state.idx < state.qs.length - 1){ state.idx++; } render(); }
+function back(){ if(state.idx > 0){ state.idx--; render(); } }
+function next(){
+  if(state.ans[state.idx]===null) return alert(UI.alertChoose);
+  if(state.idx < state.qs.length - 1){ state.idx++; render(); }
+  else { finish(); }
+}
+async function finish(){
+  if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+  state.mode = 'result'; render();
+  if(DATA.saveData && DATA.sheetUrl){
+    state.loading = true; render();
+    let score = state.ans.reduce((acc, a, i) => acc + (a === state.qs[i].answerIndex ? 1 : 0), 0);
+    let pct = Math.round((score/state.qs.length)*100);
+    try {
+      await fetch(DATA.sheetUrl, { method:'POST', body: JSON.stringify({name:state.name, class:state.class, score:score, percent:pct}), mode:'no-cors' });
+      setTimeout(async () => {
+        try { const res = await fetch(DATA.sheetUrl); state.ranking = await res.json(); render(); } catch(e){}
+        state.loading = false; render();
+      }, 1500);
+    } catch(e){ state.loading = false; render(); }
+  }
+}
+render();
+</script>
+</body></html>
