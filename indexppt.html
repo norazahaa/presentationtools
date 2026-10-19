@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Presentation Design Quiz</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh; padding: 20px; color: #333;
+}
+.container { max-width: 700px; margin: 0 auto; }
+.header { text-align: center; color: #fff; padding: 30px 20px; }
+.header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; text-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+.header .meta { font-size: 14px; opacity: 0.9; }
+.progress-bar { background: rgba(255,255,255,0.3); border-radius: 10px; height: 8px; margin: 20px 0; overflow: hidden; }
+.progress-fill { background: #fff; height: 100%; width: 0%; transition: width 0.4s ease; border-radius: 10px; }
+.question { background: #fff; border-radius: 16px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); display: none; }
+.question.active { display: block; }
+.q-header { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 13px; color: #888; }
+.q-number { font-weight: 600; color: #667eea; }
+.q-text { font-size: 18px; font-weight: 600; line-height: 1.5; margin-bottom: 25px; color: #222; }
+.options { display: flex; flex-direction: column; gap: 12px; }
+.option-wrapper { display: flex; flex-direction: column; }
+.option {
+  display: flex; align-items: flex-start; gap: 14px; padding: 16px 18px;
+  border: 2px solid #e8e8e8; border-radius: 12px; background: #fafafa;
+  cursor: pointer; transition: all 0.2s; text-align: left; font-size: 15px; width: 100%;
+}
+[dir="rtl"] .option { text-align: right; flex-direction: row-reverse; }
+.option:hover:not(.disabled) { border-color: #667eea; background: #f5f3ff; }
+.option.selected { border-color: #667eea; background: #ede9fe; }
+.option.correct { border-color: #22c55e; background: #dcfce7; }
+.option.incorrect { border-color: #ef4444; background: #fee2e2; }
+.option.disabled { cursor: default; }
+.option.show-correct { border-color: #22c55e; background: #dcfce7; }
+.opt-label {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 50%; background: #e8e8e8;
+  font-weight: 700; font-size: 14px; flex-shrink: 0;
+}
+.option.selected .opt-label { background: #667eea; color: #fff; }
+.option.correct .opt-label { background: #22c55e; color: #fff; }
+.option.incorrect .opt-label { background: #ef4444; color: #fff; }
+.option.show-correct .opt-label { background: #22c55e; color: #fff; }
+.opt-text { padding-top: 5px; line-height: 1.5; }
+
+/* Individual option feedback */
+.option-feedback {
+  margin: 8px 0 4px 46px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+[dir="rtl"] .option-feedback { margin-left: 0; margin-right: 46px; }
+.option-feedback.correct-feedback {
+  background: #dcfce7;
+  border-left: 3px solid #22c55e;
+}
+.option-feedback.incorrect-feedback {
+  background: #fef3f2;
+  border-left: 3px solid #fca5a5;
+}
+[dir="rtl"] .option-feedback.correct-feedback,
+[dir="rtl"] .option-feedback.incorrect-feedback {
+  border-left: none;
+  border-right: 3px solid;
+}
+[dir="rtl"] .option-feedback.correct-feedback { border-right-color: #22c55e; }
+[dir="rtl"] .option-feedback.incorrect-feedback { border-right-color: #fca5a5; }
+.feedback-status {
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.feedback-status.correct { color: #166534; }
+.feedback-status.incorrect { color: #991b1b; }
+.feedback-rationale { color: #444; }
+
+/* Hint box */
+.hint-box {
+  margin: 12px 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+}
+.hint-toggle {
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: #92400e;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hint-toggle:hover { background: #fef3c7; }
+.hint-content {
+  padding: 0 16px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s, padding 0.3s;
+  font-size: 14px;
+  color: #78350f;
+  line-height: 1.5;
+}
+.hint-box.show .hint-content {
+  padding: 0 16px 12px;
+  max-height: 200px;
+}
+
+.next-btn {
+  margin-top: 20px; width: 100%; padding: 14px;
+  background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none;
+  border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.next-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102,126,234,0.4); }
+.hidden { display: none !important; }
+.results { background: #fff; border-radius: 16px; padding: 40px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.15); display: none; }
+.results.active { display: block; }
+.results h2 { font-size: 28px; margin-bottom: 10px; color: #333; }
+.results .score { font-size: 64px; font-weight: 700; color: #667eea; margin: 20px 0; }
+.results .score-text { font-size: 18px; color: #666; margin-bottom: 30px; }
+.restart-btn {
+  padding: 14px 40px; background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;
+}
+
+/* Math CSS */
+.math, .math-block { font-family: "Cambria Math", "Times New Roman", Times, serif; font-style: italic; }
+.math-block { display: block; text-align: center; margin: 10px 0; font-size: 110%; }
+.frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 3px; font-size: 0.9em; }
+.frac-num { border-bottom: 1px solid currentColor; padding: 0 4px 2px; line-height: 1.2; }
+.frac-den { padding: 2px 4px 0; line-height: 1.2; }
+.sqrt { white-space: nowrap; }
+.sqrt-content { border-top: 1px solid currentColor; padding: 0 3px; margin-left: 2px; }
+sup, sub { font-size: 0.75em; }
+sup { vertical-align: super; }
+sub { vertical-align: sub; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Presentation Design Quiz</h1>
+    <div class="meta">10 questions</div>
+    <div class="progress-bar"><div class="progress-fill"></div></div>
+  </div>
+  <div id="quiz-container">
+        <div class="question" data-index="0">
+          <div class="q-header">
+            <span class="q-number">Question 1</span>
+            <span class="q-of">/ 10</span>
+          </div>
+          <div class="q-text">An instructor wants to present a striking data point about student employment rates during a live presentation. Applying effective slide design principles, how should this statistical finding be displayed?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Think about how to maximize visual impact while letting the speaker provide the detailed narrative.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Decorative 3D effects and clipart add unnecessary visual clutter that distracts from the core statistical message.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Embed a 3D bar chart with decorative clipart illustrations surrounding the percentage.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Decorative 3D effects and clipart add unnecessary visual clutter that distracts from the core statistical message.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="Including extensive written explanations on the slide forces the audience to read dense text rather than focus on the speaker.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Include the full sentence along with three bulleted paragraphs detailing the methodology.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Including extensive written explanations on the slide forces the audience to read dense text rather than focus on the speaker.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="true" data-rationale="Highlighting a single key statistic visually while providing context verbally creates maximum cognitive impact without overwhelming the audience.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Display the single percentage figure in a prominent, large font and deliver the explanatory context orally.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Highlighting a single key statistic visually while providing context verbally creates maximum cognitive impact without overwhelming the audience.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Pasting dense blocks of text onto slides leads to cognitive overload and reduces visual effectiveness.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Copy and paste the summary paragraph directly from the published study report.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Pasting dense blocks of text onto slides leads to cognitive overload and reduces visual effectiveness.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Next Question →</button>
+        </div>
+      
+        <div class="question" data-index="1">
+          <div class="q-header">
+            <span class="q-number">Question 2</span>
+            <span class="q-of">/ 10</span>
+          </div>
+          <div class="q-text">When presenting in a bright classroom where overhead lights remain fully turned on, which color scheme provides optimal legibility?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Consider how ambient light affects screen visibility and contrast ratios.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Dark backgrounds tend to wash out and lose clarity when projected under strong ambient room lighting.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">A dark blue slide background paired with light yellow text.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Dark backgrounds tend to wash out and lose clarity when projected under strong ambient room lighting.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="Fluorescent text on black creates poor readability and eye strain in bright ambient lighting conditions.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">A black slide background paired with vibrant neon green text.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Fluorescent text on black creates poor readability and eye strain in bright ambient lighting conditions.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="true" data-rationale="In fully lit environments, high contrast between dark text and a light background ensures maximum readability for viewers.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">A pure white slide background paired with dark-colored text.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">In fully lit environments, high contrast between dark text and a light background ensures maximum readability for viewers.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Low-contrast gray backgrounds with red text reduce legibility and can be difficult for viewers to read clearly.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">A light grey background paired with bright red text for emphasis.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Low-contrast gray backgrounds with red text reduce legibility and can be difficult for viewers to read clearly.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Next Question →</button>
+        </div>
+      
+        <div class="question" data-index="2">
+          <div class="q-header">
+            <span class="q-number">Question 3</span>
+            <span class="q-of">/ 10</span>
+          </div>
+          <div class="q-text">What is the primary operational downside of applying intricate motion animations to every text line and slide transition throughout a lecture?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Consider how repetitive mechanical motion impacts presentation delivery and audience engagement over time.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Transitions can technically be applied across any slides, but overusing them disrupts the overall delivery.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">They restrict slide transitions strictly to the introductory title slide.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Transitions can technically be applied across any slides, but overusing them disrupts the overall delivery.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="Motion effects do not alter text legibility directly, though they create unnecessary visual distractions.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">They render slide text completely unreadable on digital projectors.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Motion effects do not alter text legibility directly, though they create unnecessary visual distractions.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="true" data-rationale="Excessive slide animations and transitions interrupt presentation flow and create delays when navigating back and forth during discussion.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">They slow down presentation pacing and create tedious distractions, particularly during dynamic interactions like Q&amp;A.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Excessive slide animations and transitions interrupt presentation flow and create delays when navigating back and forth during discussion.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Animation settings do not disable core presenter features like speaker notes or presenter views.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">They force the presentation software to disable speaker notes and presenter view.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Animation settings do not disable core presenter features like speaker notes or presenter views.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Next Question →</button>
+        </div>
+      
+        <div class="question" data-index="3">
+          <div class="q-header">
+            <span class="q-number">Question 4</span>
+            <span class="q-of">/ 10</span>
+          </div>
+          <div class="q-text">How should a non-essential background photograph be treated on a slide so that it does not compete with main instructional content?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Think about visual hierarchy and techniques used to demote secondary visuals to the background.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Placing text over high-contrast, unblurred background photos severely degrades text legibility.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Overlay multiple full-sentence text boxes directly across the sharpest parts of the image.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Placing text over high-contrast, unblurred background photos severely degrades text legibility.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="Swapping background photos for clip art fails to solve the issue of visual distraction on the slide.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Replace the photograph with high-contrast decorative clip art.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Swapping background photos for clip art fails to solve the issue of visual distraction on the slide.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Sharpening and enlarging non-essential photos causes them to compete directly with text content for audience attention.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Scale the photo to full screen and increase its contrast and sharpness.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Sharpening and enlarging non-essential photos causes them to compete directly with text content for audience attention.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="true" data-rationale="Softening background images with lower opacity and blur ensures they remain visually subordinate to key text and graphics.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Reduce the image's opacity and apply a Gaussian blur effect.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Softening background images with lower opacity and blur ensures they remain visually subordinate to key text and graphics.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Next Question →</button>
+        </div>
+      
+        <div class="question" data-index="4">
+          <div class="q-header">
+            <span class="q-number">Question 5</span>
+            <span class="q-of">/ 10</span>
+          </div>
+          <div class="q-text">A presenter delivers a slideshow composed entirely of text bullet points accompanied by spoken narrative. Which learning preference is most neglected by this format, and how can it be addressed?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Consider which modality relies heavily on graphics and concrete spatial illustrations rather than text or voice alone.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Adding more written text does not assist visual learners who benefit primarily from images and visual demonstrations.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Auditory learners; expand the number of detailed bullet points on each slide.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Adding more written text does not assist visual learners who benefit primarily from images and visual demonstrations.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="Removing text entirely without adding visual aids fails to provide structured content for any learning preference.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Read and write learners; eliminate all visible text from the slides.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Removing text entirely without adding visual aids fails to provide structured content for any learning preference.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Font style adjustments alone do not provide the necessary graphic or visual content needed by visual learners.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Kinesthetic learners; change the typography to a sans-serif font family.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Font style adjustments alone do not provide the necessary graphic or visual content needed by visual learners.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="true" data-rationale="Text-heavy slides paired with speech lack graphical representation, leaving visual learners without concrete visual anchors.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Visual learners; incorporate relevant diagrams, video clips, and live visual demonstrations.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Text-heavy slides paired with speech lack graphical representation, leaving visual learners without concrete visual anchors.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Next Question →</button>
+        </div>
+      
+        <div class="question" data-index="5">
+          <div class="q-header">
+            <span class="q-number">Question 6</span>
+            <span class="q-of">/ 10</span>
+          </div>
+          <div class="q-text">While Prezi's non-linear, zooming interface effectively maps conceptual relationships, what widely reported challenge do speakers encounter with it?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Reflect on the physical and cognitive effects of continuous motion across a large digital canvas.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="true" data-rationale="Rapid transitions and non-linear movement across a dynamic spatial canvas can disorient viewers and cause visual fatigue.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Frequent zooming and panning motion can cause audience disorientation and cognitive fatigue.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Rapid transitions and non-linear movement across a dynamic spatial canvas can disorient viewers and cause visual fatigue.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="Cloud-based platforms offer online accessibility and dynamic web sharing rather than offline-only operation.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">It strictly functions in an offline environment without cloud support.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Cloud-based platforms offer online accessibility and dynamic web sharing rather than offline-only operation.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Modern non-linear presentation platforms fully support embedded video and image assets.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">The platform completely lacks support for video and image embedding.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Modern non-linear presentation platforms fully support embedded video and image assets.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Cloud presentation software commonly includes multi-user sharing and real-time collaboration tools.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">It prevents real-time collaboration among multiple authors.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Cloud presentation software commonly includes multi-user sharing and real-time collaboration tools.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Next Question →</button>
+        </div>
+      
+        <div class="question" data-index="6">
+          <div class="q-header">
+            <span class="q-number">Question 7</span>
+            <span class="q-of">/ 10</span>
+          </div>
+          <div class="q-text">Which statement accurately balances a key design advantage of Canva against one of its main practical limitations?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Balance the benefits of accessible design templates against the visual repetition and freemium constraints common in cloud design tools.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Cloud design applications typically allow asset export while restricting premium stock elements behind subscription paywalls.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">It provides unlimited access to premium design elements, but restricts export capabilities.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Cloud design applications typically allow asset export while restricting premium stock elements behind subscription paywalls.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Ready-made templates accelerate layout creation, but frequent template use can yield unoriginal visuals and require paid upgrades for premium elements.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">It offers intuitive drag-and-drop templates, but heavy reliance on them can lead to generic designs and paywalled assets.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Ready-made templates accelerate layout creation, but frequent template use can yield unoriginal visuals and require paid upgrades for premium elements.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Web-based graphic tools rely on active internet connections and are widely recognized for their pre-designed layout offerings.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">It operates seamlessly without an internet connection, but lacks pre-built layout options.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Web-based graphic tools rely on active internet connections and are widely recognized for their pre-designed layout offerings.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Web 2.0 tools are structured around multi-user collaboration rather than single-user restriction.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">It prevents multi-user editing, but offers an excessive number of real-time collaboration tools.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Web 2.0 tools are structured around multi-user collaboration rather than single-user restriction.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Next Question →</button>
+        </div>
+      
+        <div class="question" data-index="7">
+          <div class="q-header">
+            <span class="q-number">Question 8</span>
+            <span class="q-of">/ 10</span>
+          </div>
+          <div class="q-text">What shared infrastructure requirement represents a significant risk when presenting live using cloud-hosted Web 2.0 platforms like Canva, Prezi, or Emaze?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Identify the technical dependency inherent in software operating within web browsers.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Cloud applications offer simple link-based sharing for distributing materials to students.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Slide decks created on these platforms cannot be shared digitally with students.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Cloud applications offer simple link-based sharing for distributing materials to students.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Web-hosted presentation applications rely continuously on network connectivity, leaving live lectures vulnerable to internet disruptions.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Continuous, reliable internet connectivity is necessary, making live delivery vulnerable to network drops.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Web-hosted presentation applications rely continuously on network connectivity, leaving live lectures vulnerable to internet disruptions.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Web 2.0 presentation tools widely support standard multimedia formats, including raster graphics and audio.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">They prohibit the inclusion of standard raster graphics and audio media.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Web 2.0 presentation tools widely support standard multimedia formats, including raster graphics and audio.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Browser-based presentation tools operate across multiple operating systems equipped with standard web browsers.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">They can only be executed on a single specific computer operating system.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Browser-based presentation tools operate across multiple operating systems equipped with standard web browsers.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Next Question →</button>
+        </div>
+      
+        <div class="question" data-index="8">
+          <div class="q-header">
+            <span class="q-number">Question 9</span>
+            <span class="q-of">/ 10</span>
+          </div>
+          <div class="q-text">An instructor assigns a group presentation requiring students to co-author a deck remotely outside of class. Why is a cloud-based Web 2.0 tool appropriate, and what precaution should be taken?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Focus on the collaborative capability of cloud platforms alongside the practical boundaries of free subscription tiers.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Web 2.0 software platforms almost universally enforce feature and asset restrictions on free user tiers.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Web 2.0 platforms guarantee completely unrestricted access to all premium features on free accounts.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Web 2.0 software platforms almost universally enforce feature and asset restrictions on free user tiers.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Real-time cloud collaboration allows group members to co-edit decks remotely, though free subscription tiers may limit asset access.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Cloud features enable concurrent multi-user editing, provided users verify free-tier feature restrictions in advance.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Real-time cloud collaboration allows group members to co-edit decks remotely, though free subscription tiers may limit asset access.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Local desktop software lacks native real-time web co-editing, often causing file version conflicts during group work.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Desktop-only presentation software guarantees seamless co-editing without file version conflicts.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Local desktop software lacks native real-time web co-editing, often causing file version conflicts during group work.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Dynamic zoom visuals do not inherently guarantee better educational outcomes if the underlying content is lacking.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Non-linear zoom effects guarantee improved student learning outcomes regardless of content quality.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Dynamic zoom visuals do not inherently guarantee better educational outcomes if the underlying content is lacking.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Next Question →</button>
+        </div>
+      
+        <div class="question" data-index="9">
+          <div class="q-header">
+            <span class="q-number">Question 10</span>
+            <span class="q-of">/ 10</span>
+          </div>
+          <div class="q-text">When incorporating stock images from a Web 2.0 software library into a presentation that will be published online, what is the best copyright practice?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Consider how digital media rights depend on user account levels and specific distribution terms.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="true" data-rationale="Stock asset licenses vary based on account tiers, requiring authors to confirm permissions and credit sources before public distribution.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Review the licensing terms corresponding to the specific image and account tier, citing or replacing assets as required.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Stock asset licenses vary based on account tiers, requiring authors to confirm permissions and credit sources before public distribution.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="Altering image resolution does not alter or bypass legal copyright protections and licensing requirements.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Reduce the resolution of copyrighted images to bypass legal distribution requirements.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Altering image resolution does not alter or bypass legal copyright protections and licensing requirements.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Platform media libraries often contain assets subject to specific licensing rules and tier-based usage restrictions.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Assume all graphics stored inside a platform's media library are free for unrestricted public use.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Platform media libraries often contain assets subject to specific licensing rules and tier-based usage restrictions.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Removing all images is unnecessary when proper licensing compliance and attribution steps are followed.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Remove every image from the presentation prior to publishing.</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Removing all images is unnecessary when proper licensing compliance and attribution steps are followed.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Next Question →</button>
+        </div>
+      </div>
+  <div class="results" id="results">
+    <h2>Quiz Complete!</h2>
+    <div class="score" id="score">0%</div>
+    <div class="score-text" id="score-text"></div>
+    <button class="restart-btn" onclick="restart()">Try Again</button>
+  </div>
+</div>
+<script>
+const quizData = [{"question":"An instructor wants to present a striking data point about student employment rates during a live presentation. Applying effective slide design principles, how should this statistical finding be displayed?","hint":"Think about how to maximize visual impact while letting the speaker provide the detailed narrative.","options":[{"label":"A","text":"Embed a 3D bar chart with decorative clipart illustrations surrounding the percentage.","isCorrect":false,"rationale":"Decorative 3D effects and clipart add unnecessary visual clutter that distracts from the core statistical message."},{"label":"B","text":"Include the full sentence along with three bulleted paragraphs detailing the methodology.","isCorrect":false,"rationale":"Including extensive written explanations on the slide forces the audience to read dense text rather than focus on the speaker."},{"label":"C","text":"Display the single percentage figure in a prominent, large font and deliver the explanatory context orally.","isCorrect":true,"rationale":"Highlighting a single key statistic visually while providing context verbally creates maximum cognitive impact without overwhelming the audience."},{"label":"D","text":"Copy and paste the summary paragraph directly from the published study report.","isCorrect":false,"rationale":"Pasting dense blocks of text onto slides leads to cognitive overload and reduces visual effectiveness."}]},{"question":"When presenting in a bright classroom where overhead lights remain fully turned on, which color scheme provides optimal legibility?","hint":"Consider how ambient light affects screen visibility and contrast ratios.","options":[{"label":"A","text":"A dark blue slide background paired with light yellow text.","isCorrect":false,"rationale":"Dark backgrounds tend to wash out and lose clarity when projected under strong ambient room lighting."},{"label":"B","text":"A black slide background paired with vibrant neon green text.","isCorrect":false,"rationale":"Fluorescent text on black creates poor readability and eye strain in bright ambient lighting conditions."},{"label":"C","text":"A pure white slide background paired with dark-colored text.","isCorrect":true,"rationale":"In fully lit environments, high contrast between dark text and a light background ensures maximum readability for viewers."},{"label":"D","text":"A light grey background paired with bright red text for emphasis.","isCorrect":false,"rationale":"Low-contrast gray backgrounds with red text reduce legibility and can be difficult for viewers to read clearly."}]},{"question":"What is the primary operational downside of applying intricate motion animations to every text line and slide transition throughout a lecture?","hint":"Consider how repetitive mechanical motion impacts presentation delivery and audience engagement over time.","options":[{"label":"A","text":"They restrict slide transitions strictly to the introductory title slide.","isCorrect":false,"rationale":"Transitions can technically be applied across any slides, but overusing them disrupts the overall delivery."},{"label":"B","text":"They render slide text completely unreadable on digital projectors.","isCorrect":false,"rationale":"Motion effects do not alter text legibility directly, though they create unnecessary visual distractions."},{"label":"C","text":"They slow down presentation pacing and create tedious distractions, particularly during dynamic interactions like Q&A.","isCorrect":true,"rationale":"Excessive slide animations and transitions interrupt presentation flow and create delays when navigating back and forth during discussion."},{"label":"D","text":"They force the presentation software to disable speaker notes and presenter view.","isCorrect":false,"rationale":"Animation settings do not disable core presenter features like speaker notes or presenter views."}]},{"question":"How should a non-essential background photograph be treated on a slide so that it does not compete with main instructional content?","hint":"Think about visual hierarchy and techniques used to demote secondary visuals to the background.","options":[{"label":"A","text":"Overlay multiple full-sentence text boxes directly across the sharpest parts of the image.","isCorrect":false,"rationale":"Placing text over high-contrast, unblurred background photos severely degrades text legibility."},{"label":"B","text":"Replace the photograph with high-contrast decorative clip art.","isCorrect":false,"rationale":"Swapping background photos for clip art fails to solve the issue of visual distraction on the slide."},{"label":"C","text":"Scale the photo to full screen and increase its contrast and sharpness.","isCorrect":false,"rationale":"Sharpening and enlarging non-essential photos causes them to compete directly with text content for audience attention."},{"label":"D","text":"Reduce the image's opacity and apply a Gaussian blur effect.","isCorrect":true,"rationale":"Softening background images with lower opacity and blur ensures they remain visually subordinate to key text and graphics."}]},{"question":"A presenter delivers a slideshow composed entirely of text bullet points accompanied by spoken narrative. Which learning preference is most neglected by this format, and how can it be addressed?","hint":"Consider which modality relies heavily on graphics and concrete spatial illustrations rather than text or voice alone.","options":[{"label":"A","text":"Auditory learners; expand the number of detailed bullet points on each slide.","isCorrect":false,"rationale":"Adding more written text does not assist visual learners who benefit primarily from images and visual demonstrations."},{"label":"B","text":"Read and write learners; eliminate all visible text from the slides.","isCorrect":false,"rationale":"Removing text entirely without adding visual aids fails to provide structured content for any learning preference."},{"label":"C","text":"Kinesthetic learners; change the typography to a sans-serif font family.","isCorrect":false,"rationale":"Font style adjustments alone do not provide the necessary graphic or visual content needed by visual learners."},{"label":"D","text":"Visual learners; incorporate relevant diagrams, video clips, and live visual demonstrations.","isCorrect":true,"rationale":"Text-heavy slides paired with speech lack graphical representation, leaving visual learners without concrete visual anchors."}]},{"question":"While Prezi's non-linear, zooming interface effectively maps conceptual relationships, what widely reported challenge do speakers encounter with it?","hint":"Reflect on the physical and cognitive effects of continuous motion across a large digital canvas.","options":[{"label":"A","text":"Frequent zooming and panning motion can cause audience disorientation and cognitive fatigue.","isCorrect":true,"rationale":"Rapid transitions and non-linear movement across a dynamic spatial canvas can disorient viewers and cause visual fatigue."},{"label":"B","text":"It strictly functions in an offline environment without cloud support.","isCorrect":false,"rationale":"Cloud-based platforms offer online accessibility and dynamic web sharing rather than offline-only operation."},{"label":"C","text":"The platform completely lacks support for video and image embedding.","isCorrect":false,"rationale":"Modern non-linear presentation platforms fully support embedded video and image assets."},{"label":"D","text":"It prevents real-time collaboration among multiple authors.","isCorrect":false,"rationale":"Cloud presentation software commonly includes multi-user sharing and real-time collaboration tools."}]},{"question":"Which statement accurately balances a key design advantage of Canva against one of its main practical limitations?","hint":"Balance the benefits of accessible design templates against the visual repetition and freemium constraints common in cloud design tools.","options":[{"label":"A","text":"It provides unlimited access to premium design elements, but restricts export capabilities.","isCorrect":false,"rationale":"Cloud design applications typically allow asset export while restricting premium stock elements behind subscription paywalls."},{"label":"B","text":"It offers intuitive drag-and-drop templates, but heavy reliance on them can lead to generic designs and paywalled assets.","isCorrect":true,"rationale":"Ready-made templates accelerate layout creation, but frequent template use can yield unoriginal visuals and require paid upgrades for premium elements."},{"label":"C","text":"It operates seamlessly without an internet connection, but lacks pre-built layout options.","isCorrect":false,"rationale":"Web-based graphic tools rely on active internet connections and are widely recognized for their pre-designed layout offerings."},{"label":"D","text":"It prevents multi-user editing, but offers an excessive number of real-time collaboration tools.","isCorrect":false,"rationale":"Web 2.0 tools are structured around multi-user collaboration rather than single-user restriction."}]},{"question":"What shared infrastructure requirement represents a significant risk when presenting live using cloud-hosted Web 2.0 platforms like Canva, Prezi, or Emaze?","hint":"Identify the technical dependency inherent in software operating within web browsers.","options":[{"label":"A","text":"Slide decks created on these platforms cannot be shared digitally with students.","isCorrect":false,"rationale":"Cloud applications offer simple link-based sharing for distributing materials to students."},{"label":"B","text":"Continuous, reliable internet connectivity is necessary, making live delivery vulnerable to network drops.","isCorrect":true,"rationale":"Web-hosted presentation applications rely continuously on network connectivity, leaving live lectures vulnerable to internet disruptions."},{"label":"C","text":"They prohibit the inclusion of standard raster graphics and audio media.","isCorrect":false,"rationale":"Web 2.0 presentation tools widely support standard multimedia formats, including raster graphics and audio."},{"label":"D","text":"They can only be executed on a single specific computer operating system.","isCorrect":false,"rationale":"Browser-based presentation tools operate across multiple operating systems equipped with standard web browsers."}]},{"question":"An instructor assigns a group presentation requiring students to co-author a deck remotely outside of class. Why is a cloud-based Web 2.0 tool appropriate, and what precaution should be taken?","hint":"Focus on the collaborative capability of cloud platforms alongside the practical boundaries of free subscription tiers.","options":[{"label":"A","text":"Web 2.0 platforms guarantee completely unrestricted access to all premium features on free accounts.","isCorrect":false,"rationale":"Web 2.0 software platforms almost universally enforce feature and asset restrictions on free user tiers."},{"label":"B","text":"Cloud features enable concurrent multi-user editing, provided users verify free-tier feature restrictions in advance.","isCorrect":true,"rationale":"Real-time cloud collaboration allows group members to co-edit decks remotely, though free subscription tiers may limit asset access."},{"label":"C","text":"Desktop-only presentation software guarantees seamless co-editing without file version conflicts.","isCorrect":false,"rationale":"Local desktop software lacks native real-time web co-editing, often causing file version conflicts during group work."},{"label":"D","text":"Non-linear zoom effects guarantee improved student learning outcomes regardless of content quality.","isCorrect":false,"rationale":"Dynamic zoom visuals do not inherently guarantee better educational outcomes if the underlying content is lacking."}]},{"question":"When incorporating stock images from a Web 2.0 software library into a presentation that will be published online, what is the best copyright practice?","hint":"Consider how digital media rights depend on user account levels and specific distribution terms.","options":[{"label":"A","text":"Review the licensing terms corresponding to the specific image and account tier, citing or replacing assets as required.","isCorrect":true,"rationale":"Stock asset licenses vary based on account tiers, requiring authors to confirm permissions and credit sources before public distribution."},{"label":"B","text":"Reduce the resolution of copyrighted images to bypass legal distribution requirements.","isCorrect":false,"rationale":"Altering image resolution does not alter or bypass legal copyright protections and licensing requirements."},{"label":"C","text":"Assume all graphics stored inside a platform's media library are free for unrestricted public use.","isCorrect":false,"rationale":"Platform media libraries often contain assets subject to specific licensing rules and tier-based usage restrictions."},{"label":"D","text":"Remove every image from the presentation prior to publishing.","isCorrect":false,"rationale":"Removing all images is unnecessary when proper licensing compliance and attribution steps are followed."}]}];
+const tr = {"correct":"Correct!","incorrect":"Incorrect","next":"Next Question →","seeResults":"See Results","complete":"Quiz Complete!","scoreText":"You got {correct} out of {total} correct","tryAgain":"Try Again","rightAnswer":"Right answer","notQuite":"Not quite"};
+let currentQ = 0, correctCount = 0, answered = false;
+
+function init() {
+  document.querySelectorAll('.question').forEach((q, i) => q.classList.toggle('active', i === 0));
+  updateProgress();
+  document.querySelectorAll('.option').forEach(opt => opt.addEventListener('click', () => selectOption(opt)));
+  document.querySelectorAll('.next-btn').forEach(btn => btn.addEventListener('click', nextQuestion));
+}
+
+function selectOption(opt) {
+  if (answered) return;
+  answered = true;
+  const q = opt.closest('.question');
+  const options = q.querySelectorAll('.option');
+  const nextBtn = q.querySelector('.next-btn');
+  const isCorrect = opt.dataset.correct === 'true';
+  
+  // Mark all options as disabled
+  options.forEach(o => o.classList.add('disabled'));
+  
+  // Style selected option
+  opt.classList.add('selected', isCorrect ? 'correct' : 'incorrect');
+  
+  // Show correct answer if wrong
+  if (!isCorrect) {
+    const correctOpt = [...options].find(o => o.dataset.correct === 'true');
+    if (correctOpt) correctOpt.classList.add('show-correct');
+  }
+  
+  if (isCorrect) correctCount++;
+  
+  // Show feedback for ALL options that have rationale
+  options.forEach(o => {
+    const wrapper = o.closest('.option-wrapper');
+    const feedback = wrapper.querySelector('.option-feedback');
+    const rationale = o.dataset.rationale;
+    const isThisCorrect = o.dataset.correct === 'true';
+    
+    if (rationale && rationale.trim()) {
+      feedback.classList.remove('hidden');
+      feedback.classList.add(isThisCorrect ? 'correct-feedback' : 'incorrect-feedback');
+      
+      const statusEl = feedback.querySelector('.feedback-status');
+      statusEl.className = 'feedback-status ' + (isThisCorrect ? 'correct' : 'incorrect');
+      statusEl.innerHTML = isThisCorrect 
+        ? '✓ ' + tr.rightAnswer
+        : '✗ ' + tr.notQuite;
+    }
+  });
+  
+  nextBtn.classList.remove('hidden');
+  if (currentQ === quizData.length - 1) nextBtn.textContent = tr.seeResults;
+}
+
+function nextQuestion() {
+  answered = false;
+  currentQ++;
+  if (currentQ >= quizData.length) { showResults(); return; }
+  document.querySelectorAll('.question').forEach((q, i) => q.classList.toggle('active', i === currentQ));
+  updateProgress();
+}
+
+function updateProgress() {
+  document.querySelector('.progress-fill').style.width = (currentQ / quizData.length * 100) + '%';
+}
+
+function showResults() {
+  document.querySelectorAll('.question').forEach(q => q.classList.remove('active'));
+  document.getElementById('results').classList.add('active');
+  const pct = Math.round((correctCount / quizData.length) * 100);
+  document.getElementById('score').textContent = pct + '%';
+  document.getElementById('score-text').textContent = tr.scoreText.replace('{correct}', correctCount).replace('{total}', quizData.length);
+  document.querySelector('.progress-fill').style.width = '100%';
+}
+
+function restart() {
+  currentQ = 0; correctCount = 0; answered = false;
+  document.getElementById('results').classList.remove('active');
+  document.querySelectorAll('.question').forEach((q, i) => {
+    q.classList.toggle('active', i === 0);
+    q.querySelectorAll('.option').forEach(o => o.classList.remove('selected', 'correct', 'incorrect', 'disabled', 'show-correct'));
+    q.querySelectorAll('.option-feedback').forEach(f => {
+      f.classList.add('hidden');
+      f.classList.remove('correct-feedback', 'incorrect-feedback');
+    });
+    const btn = q.querySelector('.next-btn');
+    btn.classList.add('hidden');
+    btn.textContent = tr.next;
+  });
+  updateProgress();
+}
+
+init();
+</script>
+</body>
+</html>
